@@ -32,12 +32,15 @@ public class NavigationURLBar extends FrameLayout {
 
     private EditText mURL;
     private ImageButton mMicrophoneButton;
+    private ImageButton mBookmarkButton;
     private ImageView mInsecureIcon;
     private ImageView mLoadingView;
     private Animation mLoadingAnimation;
     private RelativeLayout mURLLeftContainer;
     private boolean mIsLoading = false;
     private boolean mIsInsecure = false;
+    private boolean mIsBookmarkHidden = false;
+    private boolean mIsBookmarked = false;
     private int mDefaultURLLeftPadding = 0;
     private int mURLProtocolColor;
     private int mURLWebsiteColor;
@@ -56,16 +59,23 @@ public class NavigationURLBar extends FrameLayout {
     private void initialize(Context aContext) {
         inflate(aContext, R.layout.navigation_url, this);
         mURLPattern = Pattern.compile("[\\d\\w][.][\\d\\w]");
+
         mURL = findViewById(R.id.urlEditText);
+        mMicrophoneButton = findViewById(R.id.microphoneButton);
+        mBookmarkButton = findViewById(R.id.bookmarkButton);
+        mURLLeftContainer = findViewById(R.id.urlLeftContainer);
+        mInsecureIcon = findViewById(R.id.insecureIcon);
+        mLoadingView = findViewById(R.id.loadingView);
+
         mURL.setShowSoftInputOnFocus(false);
         mURL.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView aTextView, int actionId, KeyEvent event) {
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                handleURLEdit(aTextView.getText().toString());
-                return true;
-            }
-            return false;
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    handleURLEdit(aTextView.getText().toString());
+                    return true;
+                }
+                return false;
             }
         });
         mURL.setOnFocusChangeListener(new OnFocusChangeListener() {
@@ -73,15 +83,13 @@ public class NavigationURLBar extends FrameLayout {
             public void onFocusChange(View view, boolean b) {
                 if (b && mURL.getText().length() > 0) {
                     showVoiceSearch(false);
+                    showBookmark(false);
                 }
             }
         });
         mURL.addTextChangedListener(mURLTextWatcher);
-        mMicrophoneButton = findViewById(R.id.microphoneButton);
         mMicrophoneButton.setOnClickListener(mMicrophoneListener);
-        mURLLeftContainer = findViewById(R.id.urlLeftContainer);
-        mInsecureIcon = findViewById(R.id.insecureIcon);
-        mLoadingView = findViewById(R.id.loadingView);
+        mBookmarkButton.setOnClickListener(mBookmarkListener);
         mLoadingAnimation = AnimationUtils.loadAnimation(aContext, R.anim.loading);
         mDefaultURLLeftPadding = mURL.getPaddingLeft();
 
@@ -154,14 +162,35 @@ public class NavigationURLBar extends FrameLayout {
         }
     }
 
-    public void showVoiceSearch(boolean enabled) {
-        if (enabled) {
+    public void setIsBookmarkHidden(boolean aIsBookmarkHidden) {
+        if (mIsBookmarkHidden != aIsBookmarkHidden) {
+            mIsBookmarkHidden = aIsBookmarkHidden;
+            if (aIsBookmarkHidden) {
+                showBookmark(false);
+            } else {
+                showBookmark(true);
+            }
+            syncViews();
+        }
+    }
+
+    public void showVoiceSearch(boolean aIsEnabled) {
+        if (aIsEnabled) {
             mMicrophoneButton.setImageResource(R.drawable.ic_icon_microphone);
             mMicrophoneButton.setOnClickListener(mMicrophoneListener);
-
         } else {
             mMicrophoneButton.setImageResource(R.drawable.ic_icon_clear);
             mMicrophoneButton.setOnClickListener(mClearListener);
+        }
+    }
+
+    public void showBookmark(boolean aIsEnabled) {
+        if (aIsEnabled) {
+            mBookmarkButton.setImageResource(R.drawable.ic_icon_bookmark);
+            mBookmarkButton.setOnClickListener(mBookmarkListener);
+        } else {
+            mBookmarkButton.setImageResource(R.drawable.ic_icon_clear);
+            mBookmarkButton.setOnClickListener(mClearListener);
         }
     }
 
@@ -173,6 +202,7 @@ public class NavigationURLBar extends FrameLayout {
             mURLLeftContainer.measure(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
             mLoadingView.setVisibility(mIsLoading ? View.VISIBLE : View.GONE);
             mInsecureIcon.setVisibility(!mIsLoading && mIsInsecure ? View.VISIBLE : View.GONE);
+            mBookmarkButton.setVisibility(mIsBookmarkHidden ? View.GONE : View.VISIBLE);
             leftPadding = mURLLeftContainer.getMeasuredWidth();
         }
         else {
@@ -220,6 +250,7 @@ public class NavigationURLBar extends FrameLayout {
         }
 
         showVoiceSearch(true);
+        showBookmark(true);
     }
 
     public void setPrivateMode(boolean isEnabled) {
@@ -243,14 +274,21 @@ public class NavigationURLBar extends FrameLayout {
 
             TelemetryWrapper.voiceInputEvent();
         }
-    };
+    }
+
+    private OnClickListener mBookmarkListener = new OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            TelemetryWrapper.bookmarkAddEvent();
+        }
+    }
 
     private OnClickListener mClearListener = new OnClickListener() {
         @Override
         public void onClick(View view) {
             mURL.getText().clear();
         }
-    };
+    }
 
     private TextWatcher mURLTextWatcher = new TextWatcher() {
         @Override
@@ -262,9 +300,10 @@ public class NavigationURLBar extends FrameLayout {
         public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
             if (mURL.getText().length() > 0) {
                 showVoiceSearch(false);
-
+                showBookmark(false);
             } else {
                 showVoiceSearch(true);
+                showBookmark(true);
             }
         }
 
@@ -272,6 +311,5 @@ public class NavigationURLBar extends FrameLayout {
         public void afterTextChanged(Editable editable) {
 
         }
-    };
-
+    }
 }

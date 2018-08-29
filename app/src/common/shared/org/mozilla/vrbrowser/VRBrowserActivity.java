@@ -697,6 +697,7 @@ public class VRBrowserActivity extends PlatformActivity implements WidgetManager
     @Override
     public void keyboardDismissed() {
         mNavigationBar.showVoiceSearch();
+        mNavigationBar.showBookmark();
     }
 
     @Override

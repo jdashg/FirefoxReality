@@ -42,6 +42,8 @@ public class TelemetryWrapper {
         private static final String APP = "app";
         private static final String SEARCH_BAR = "search_bar";
         private static final String VOICE_INPUT = "voice_input";
+        private static final String BOOKMARK_ADD = "bookmark_add";
+        private static final String BOOKMARK_REOVE = "bookmark_remove";
     }
 
     // We should call this at the application initial stage. Instead,
@@ -62,7 +64,7 @@ public class TelemetryWrapper {
                     .setCollectionEnabled(telemetryEnabled)
                     .setUploadEnabled(telemetryEnabled)
                     .setBuildId(String.valueOf(BuildConfig.VERSION_CODE));
-            
+
             final JSONPingSerializer serializer = new JSONPingSerializer();
             final FileTelemetryStorage storage = new FileTelemetryStorage(configuration, serializer);
             final HttpURLConnectionTelemetryClient client = new HttpURLConnectionTelemetryClient();
@@ -111,6 +113,18 @@ public class TelemetryWrapper {
         telemetry.recordSearch(SearchesMeasurement.LOCATION_ACTIONBAR, searchEngine);
     }
 
+    @UiThread
+    public static void bookmarkAddEvent() {
+        Telemetry telemetry = TelemetryHolder.get();
+        TelemetryEvent.create(Category.ACTION, Method.VOICE_QUERY, Object.BOOKMARK_ADD).queue();
+    }
+
+    @UiThread
+    public static void bookmarkRemoveEvent() {
+        Telemetry telemetry = TelemetryHolder.get();
+        TelemetryEvent.create(Category.ACTION, Method.VOICE_QUERY, Object.BOOKMARK_REMOVE).queue();
+    }
+
     private static String getDefaultSearchEngineIdentifierForTelemetry(Context aContext) {
         return SearchEngine.get(aContext).getURLResource();
     }
@@ -130,4 +144,3 @@ public class TelemetryWrapper {
         event.queue();
     }
 }
-

@@ -40,12 +40,15 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     private ViewGroup mFocusModeContainer;
     private ViewGroup mResizeModeContainer;
     private BrowserWidget mBrowserWidget;
+    private boolean mIsBookmarked;
     private boolean mIsLoading;
     private boolean mIsInFocusMode;
     private boolean mIsResizing;
     private boolean mFocusDueToFullScreen;
     private Runnable mFocusBackHandler;
     private Runnable mResizeBackHandler;
+    private UIButton mBookmarkAddButton;
+    private UIButton mBookmarkRemoveButton;
     private UIButton mFocusEnterButton;
     private UIButton mFocusExitButton;
     private UIButton mResizeEnterButton;
@@ -157,6 +160,25 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         mPreset2 = findViewById(R.id.resizePreset2);
         mPreset3 = findViewById(R.id.resizePreset3);
 
+        mFocusEnterButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                enterFocusMode();
+                if (mAudio != null) {
+                    mAudio.playSound(AudioEngine.Sound.CLICK);
+                }
+            }
+        });
+
+        mFocusExitButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                exitFocusMode();
+                if (mAudio != null) {
+                    mAudio.playSound(AudioEngine.Sound.CLICK);
+                }
+            }
+        });
 
         mFocusEnterButton.setOnClickListener(new OnClickListener() {
             @Override
@@ -475,6 +497,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         }
         mIsLoading = true;
         mURLBar.setIsLoading(true);
+        mURLBar.setIsBookmarkHidden(true);
         if (mReloadButton != null) {
             mReloadButton.setImageResource(R.drawable.ic_icon_exit);
         }
@@ -487,6 +510,7 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     public void onPageStop(GeckoSession aSession, boolean b) {
         mIsLoading = false;
         mURLBar.setIsLoading(false);
+        mURLBar.setIsBookmarkHidden(false);
         if (mReloadButton != null) {
             mReloadButton.setImageResource(R.drawable.ic_icon_reload);
         }

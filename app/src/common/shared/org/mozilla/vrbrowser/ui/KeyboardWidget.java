@@ -110,7 +110,7 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             }
         });
 
-        int[] featuredKeys = {' ', Keyboard.KEYCODE_DELETE, Keyboard.KEYCODE_DONE, Keyboard.KEYCODE_CANCEL, CustomKeyboard.KEYCODE_VOICE_INPUT, CustomKeyboard.KEYCODE_SYMBOLS_CHANGE};
+        int[] featuredKeys = {' ', Keyboard.KEYCODE_DELETE, Keyboard.KEYCODE_DONE, Keyboard.KEYCODE_CANCEL, CustomKeyboard.KEYCODE_VOICE_INPUT, CustomKeyboard.KEYCODE_BOOKMARK_ADD, CustomKeyboard.KEYCODE_BOOKMARK_REMOVE, CustomKeyboard.KEYCODE_SYMBOLS_CHANGE};
         mKeyboardview.setFeaturedKeyBackground(R.drawable.keyboard_featured_key_background, featuredKeys);
 
         mKeyboardview.setOnKeyListener(new View.OnKeyListener() {
@@ -355,6 +355,12 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
             case CustomKeyboard.KEYCODE_VOICE_INPUT:
                 handleVoiceInput();
                 break;
+            case CustomKeyboard.KEYCODE_BOOKMARK_ADD:
+                handleBookmarkAdd();
+                break;
+            case CustomKeyboard.KEYCODE_BOOKMARK_REMOVE:
+                handleBookmarkRemove();
+                break;
             case CustomKeyboard.KEYCODE_STRING_COM:
                 handleText(".com");
                 break;
@@ -528,6 +534,18 @@ public class KeyboardWidget extends UIWidget implements CustomKeyboardView.OnKey
         mKeyboardview.setVisibility(View.GONE);
         mVoiceInput.setVisibility(View.VISIBLE);
         TelemetryWrapper.voiceInputEvent();
+    }
+
+    private void handleBookmarkAdd() {
+        mKeyboardview.setVisibility(View.GONE);
+        mVoiceInput.setVisibility(View.VISIBLE);
+        TelemetryWrapper.bookmarkAddEvent();
+    }
+
+    private void handleBookmarkRemove() {
+        mKeyboardview.setVisibility(View.GONE);
+        mVoiceInput.setVisibility(View.VISIBLE);
+        TelemetryWrapper.bookmarkRemoveEvent();
     }
 
     private void postInputCommand(Runnable aRunnable) {
