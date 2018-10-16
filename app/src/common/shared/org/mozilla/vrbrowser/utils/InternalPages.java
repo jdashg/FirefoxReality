@@ -64,8 +64,8 @@ public class InternalPages {
                     }
                     case NavigationDelegate.ERROR_CONNECTION_REFUSED: {
                         return LocalizedResources.create(
-                                R.string.error_connection_failure_title,
-                                R.string.error_connection_failure_message);
+                                R.string.error_connectionfailure_title,
+                                R.string.error_connectionfailure_message);
                     }
                     case NavigationDelegate.ERROR_UNKNOWN_SOCKET_TYPE: {
                         return LocalizedResources.create(

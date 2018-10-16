@@ -122,7 +122,7 @@ button:active {
     width: 4em;
 }
 
-.two-column {
+html.private ul {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     grid-column-gap: 1em;
