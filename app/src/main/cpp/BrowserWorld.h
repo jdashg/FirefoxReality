@@ -51,6 +51,8 @@ public:
   void LayoutWidget(int32_t aHandle);
   void SetBrightness(const float aBrightness);
   void ExitImmersive();
+  void ShowVRVideo(const int aWindowHandle, const int aVideoProjection);
+  void HideVRVideo();
   JNIEnv* GetJNIEnv() const;
 protected:
   struct State;

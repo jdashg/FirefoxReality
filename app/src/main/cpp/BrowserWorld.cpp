@@ -17,6 +17,8 @@
 #include "Widget.h"
 #include "WidgetPlacement.h"
 #include "VRBrowser.h"
+#include "Quad.h"
+#include "VRVideo.h"
 #include "vrb/CameraSimple.h"
 #include "vrb/Color.h"
 #include "vrb/ConcreteClass.h"
@@ -43,7 +45,6 @@
 #include "vrb/Transform.h"
 #include "vrb/VertexArray.h"
 #include "vrb/Vector.h"
-#include "Quad.h"
 
 #include <array>
 #include <functional>
@@ -161,7 +162,7 @@ struct BrowserWorld::State {
   WidgetPtr resizingWidget;
   LoadingAnimationPtr loadingAnimation;
   SplashAnimationPtr splashAnimation;
-  int colorIndex;
+  VRVideoPtr vrVideo;
 
   State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), nearClip(0.1f),
             farClip(300.0f), activity(nullptr), windowsInitialized(false), exitImmersiveRequested(false), loaderDelay(0) {
@@ -185,7 +186,6 @@ struct BrowserWorld::State {
     fadeBlitter = FadeBlitter::Create(create);
     loadingAnimation = LoadingAnimation::Create(create);
     splashAnimation = SplashAnimation::Create(create);
-    colorIndex = 0;
   }
 
   void CheckBackButton();
@@ -841,6 +841,30 @@ BrowserWorld::ExitImmersive() {
   m.exitImmersiveRequested = true;
 }
 
+void
+BrowserWorld::ShowVRVideo(const int aWindowHandle, const int aVideoProjection) {
+  if (m.vrVideo) {
+    m.vrVideo->GetRoot()->RemoveFromParents();
+  }
+
+  WidgetPtr widget = m.GetWidget(aWindowHandle);
+  if (!widget) {
+    VRB_ERROR("Can't find Widget for VRVideo with handle: %d", aWindowHandle);
+    return;
+  }
+
+  m.vrVideo = VRVideo::Create(m.create, widget, aVideoProjection);
+  m.rootOpaque->AddNode(m.vrVideo->GetRoot());
+}
+
+void
+BrowserWorld::HideVRVideo() {
+  if (m.vrVideo) {
+    m.vrVideo->GetRoot()->RemoveFromParents();
+    m.vrVideo = nullptr;
+  }
+}
+
 JNIEnv*
 BrowserWorld::GetJNIEnv() const {
   ASSERT_ON_RENDER_THREAD(nullptr);
@@ -887,6 +911,9 @@ BrowserWorld::DrawWorld() {
   m.rootTransparent->SetTransform(m.device->GetReorientTransform());
 
   m.device->BindEye(device::Eye::Left);
+  if (m.vrVideo) {
+    m.vrVideo->SelectEye(device::Eye::Left);
+  }
   m.drawList->Reset();
   m.rootOpaqueParent->Cull(*m.cullVisitor, *m.drawList);
   m.drawList->Draw(*m.leftCamera);
@@ -904,6 +931,9 @@ BrowserWorld::DrawWorld() {
   // When running the noapi flavor, we only want to render one eye.
 #if !defined(VRBROWSER_NO_VR_API)
   m.device->BindEye(device::Eye::Right);
+  if (m.vrVideo) {
+    m.vrVideo->SelectEye(device::Eye::Right);
+  }
   m.drawList->Reset();
   m.rootOpaqueParent->Cull(*m.cullVisitor, *m.drawList);
   m.drawList->Draw(*m.rightCamera);
@@ -1217,6 +1247,16 @@ JNI_METHOD(void, updateEnvironmentNative)
 JNI_METHOD(void, updatePointerColorNative)
 (JNIEnv* aEnv, jobject) {
   crow::BrowserWorld::Instance().UpdatePointerColor();
+}
+
+JNI_METHOD(void, showVRVideoNative)
+(JNIEnv* aEnv, jobject, jint aWindowHandle, jint aVideoProjection) {
+  crow::BrowserWorld::Instance().ShowVRVideo(aWindowHandle, aVideoProjection);
+}
+
+JNI_METHOD(void, hideVRVideoNative)
+(JNIEnv* aEnv, jobject) {
+  crow::BrowserWorld::Instance().HideVRVideo();
 }
 
 } // extern "C"

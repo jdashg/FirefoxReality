@@ -45,6 +45,8 @@ public interface WidgetManagerDelegate {
     void removePermissionListener(PermissionListener aListener);
     void addWorldClickListener(WorldClickListener aListener);
     void removeWorldClickListener(WorldClickListener aListener);
+    void showVRVideo(int aWindowHandle, @VideoProjectionMenuWidget.VideoProjectionFlags int aVideoProjection);
+    void hideVRVideo();
     boolean isPermissionGranted(@NonNull String permission);
     void requestPermission(@NonNull String uri, @NonNull String permission, GeckoSession.PermissionDelegate.Callback aCallback);
 }

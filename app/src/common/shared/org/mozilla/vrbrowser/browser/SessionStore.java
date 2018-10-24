@@ -18,6 +18,7 @@ import android.view.inputmethod.ExtractedTextRequest;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.geckoview.AllowOrDeny;
+import org.mozilla.geckoview.MediaElement;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
 import org.mozilla.geckoview.GeckoRuntimeSettings;
@@ -28,7 +29,6 @@ import org.mozilla.vrbrowser.R;
 import org.mozilla.vrbrowser.crashreporting.CrashReporterService;
 import org.mozilla.vrbrowser.telemetry.TelemetryWrapper;
 import org.mozilla.vrbrowser.utils.InternalPages;
-import org.mozilla.vrbrowser.utils.ValueHolder;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -50,7 +50,7 @@ import static org.mozilla.vrbrowser.utils.ServoUtils.*;
 
 public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSession.ProgressDelegate,
         GeckoSession.ContentDelegate, GeckoSession.TextInputDelegate, GeckoSession.TrackingProtectionDelegate,
-        GeckoSession.PromptDelegate {
+        GeckoSession.PromptDelegate, GeckoSession.MediaDelegate {
 
     private static SessionStore mInstance;
     private static final String LOGTAG = "VRB";
@@ -60,7 +60,8 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         }
         return mInstance;
     }
-    private static final String HOME_WITHOUT_REGION_ORIGIN = "https://webxr.today/";
+    //private static final String HOME_WITHOUT_REGION_ORIGIN = "https://webxr.today/";
+    private static final String HOME_WITHOUT_REGION_ORIGIN = "https://www.youtube.com/watch?v=sPyAQQklc1s"; //"resource://android/assets/webvr/index.html";
     public static final String PRIVATE_BROWSING_URI = "about:privatebrowsing";
     public static final int NO_SESSION_ID = -1;
 
@@ -98,6 +99,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         boolean mFullScreen;
         GeckoSession mSession;
         SessionSettings mSettings;
+        ArrayList<Media> mMediaElements = new ArrayList<>();
     }
 
     private GeckoRuntime mRuntime;
@@ -311,6 +313,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
         state.mSession.getTextInput().setDelegate(this);
         state.mSession.setPermissionDelegate(mPermissionDelegate);
         state.mSession.setTrackingProtectionDelegate(this);
+        state.mSession.setMediaDelegate(this);
         for (SessionChangeListener listener: mSessionChangeListeners) {
             listener.onNewSession(state.mSession, result);
         }
@@ -328,6 +331,7 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
             session.setPromptDelegate(null);
             session.setPermissionDelegate(null);
             session.setTrackingProtectionDelegate(null);
+            session.setMediaDelegate(null);
             session.close();
             mSessions.remove(aSessionId);
             for (SessionChangeListener listener: mSessionChangeListeners) {
@@ -478,6 +482,23 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
                 return result;
             }
             result = state.mPreviousUri;
+        }
+        return result;
+    }
+
+    public Media getFullScreenVideo() {
+        Media result = null;
+        if (mCurrentSession != null) {
+            State state = mSessions.get(mCurrentSession.hashCode());
+            if (state == null) {
+                return result;
+            }
+            for (Media media: state.mMediaElements) {
+                if (media.isFullscreen()) {
+                    result = media;
+                    break;
+                }
+            }
         }
         return result;
     }
@@ -1169,5 +1190,33 @@ public class SessionStore implements GeckoSession.NavigationDelegate, GeckoSessi
     @Override
     public GeckoResult<AllowOrDeny> onPopupRequest(final GeckoSession session, final String targetUri) {
         return GeckoResult.fromValue(AllowOrDeny.DENY);
+    }
+
+    // MediaDelegate
+    @Override
+    public void onMediaAdd(GeckoSession session, MediaElement element) {
+        SessionStore.State state = mSessions.get(getSessionId(session));
+        if (state == null) {
+            return;
+        }
+        Media media = new Media(element);
+        state.mMediaElements.add(media);
+        Log.e(LOGTAG, "makelele onMediaAdd");
+    }
+
+    @Override
+    public void onMediaRemove(GeckoSession session, MediaElement element) {
+        Log.e(LOGTAG, "makelele onMediaRemove");
+        SessionStore.State state = mSessions.get(getSessionId(session));
+        if (state == null) {
+            return;
+        }
+        for (int i = 0; i < state.mMediaElements.size(); ++i) {
+            Media media = state.mMediaElements.get(i);
+            if (media.getMediaElement() == element) {
+                media.unload();
+                return;
+            }
+        }
     }
 }
