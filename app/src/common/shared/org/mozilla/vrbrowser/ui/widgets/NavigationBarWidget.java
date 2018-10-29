@@ -25,20 +25,25 @@ import org.mozilla.vrbrowser.*;
 import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
+import org.mozilla.vrbrowser.search.SearchEngineWrapper;
 import org.mozilla.vrbrowser.utils.AnimationHelper;
 import org.mozilla.vrbrowser.ui.views.CustomUIButton;
 import org.mozilla.vrbrowser.ui.views.NavigationURLBar;
 import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.views.UITextButton;
+import org.mozilla.vrbrowser.utils.UrlUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.regex.Pattern;
+
+import mozilla.components.browser.search.SearchEngine;
 
 public class NavigationBarWidget extends UIWidget implements GeckoSession.NavigationDelegate,
         GeckoSession.ProgressDelegate, GeckoSession.ContentDelegate,
         WidgetManagerDelegate.UpdateListener, SessionStore.SessionChangeListener,
         NavigationURLBar.NavigationURLBarDelegate, VoiceSearchWidget.VoiceSearchDelegate,
-        SharedPreferences.OnSharedPreferenceChangeListener {
+        SharedPreferences.OnSharedPreferenceChangeListener, URLBarPopupWidget.URLBarPopupDelegate {
 
     private static final String LOGTAG = "VRB";
 
@@ -68,6 +73,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
     private VoiceSearchWidget mVoiceSearchWidget;
     private Context mAppContext;
     private SharedPreferences mPrefs;
+    private URLBarPopupWidget mPopup;
+    private SearchEngineWrapper mSearchEngineWrapper;
 
     public NavigationBarWidget(Context aContext) {
         super(aContext);
@@ -255,6 +262,11 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
 
         mVoiceSearchWidget = createChild(VoiceSearchWidget.class, false);
         mVoiceSearchWidget.setDelegate(this);
+
+        mPopup = createChild(URLBarPopupWidget.class);
+        mPopup.setURLBarPopupDelegate(this);
+
+        mSearchEngineWrapper = SearchEngineWrapper.get(getContext());
 
         SessionStore.get().addSessionChangeListener(this);
 
@@ -607,6 +619,8 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         }
     }
 
+    // NavigationURLBarDelegate
+
     @Override
     public void OnVoiceSearchClicked() {
         if (mVoiceSearchWidget.getPlacement().visible) {
@@ -616,6 +630,80 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
             mVoiceSearchWidget.show();
         }
     }
+
+    @Override
+    public void OnShowSearchPopup() {
+        if (mPopup != null) {
+            final String text = mURLBar.getText().trim();
+            final String originalText = mURLBar.getOriginalText().trim();
+            if (originalText.length() > 0) {
+                mSearchEngineWrapper.getSuggestions(
+                        originalText,
+                        (suggestions) -> {
+                            ArrayList<URLBarPopupWidget.URLBarItem> items = new ArrayList<>();
+
+                            if (!text.equals(originalText)) {
+                                // Completion from browser-domains
+                                items.add(URLBarPopupWidget.URLBarItem.create(
+                                        text,
+                                        getSearchURLOrDomain(text),
+                                        null,
+                                        URLBarPopupWidget.URLBarItem.Type.COMPLETION
+                                ));
+                            }
+
+                            // Original text
+                            items.add(URLBarPopupWidget.URLBarItem.create(
+                                    originalText,
+                                    getSearchURLOrDomain(originalText),
+                                    null,
+                                    URLBarPopupWidget.URLBarItem.Type.SUGGESTION
+                            ));
+
+                            // Suggestions
+                            for (String suggestion : suggestions) {
+                                String url = mSearchEngineWrapper.getSearchURL(suggestion);
+                                items.add(URLBarPopupWidget.URLBarItem.create(
+                                        suggestion,
+                                        url,
+                                        null,
+                                        URLBarPopupWidget.URLBarItem.Type.SUGGESTION
+                                ));
+                            }
+                            mPopup.setItems(items);
+                            mPopup.setHighlightedText(originalText);
+
+                            if (!mPopup.isVisible()) {
+                                mPopup.getPlacement().width = (int) (WidgetPlacement.convertPixelsToDp(getContext(), mURLBar.getWidth()));
+                                mPopup.updatePlacement();
+                                mPopup.show();
+                            }
+                        }
+                );
+
+            } else {
+                mPopup.hide();
+            }
+        }
+    }
+
+    @Override
+    public void OnHideSearchPopup() {
+        if (mPopup != null && mPopup.isVisible()) {
+            mPopup.hide();
+        }
+    }
+
+    private String getSearchURLOrDomain(String text) {
+        if (UrlUtils.isDomain(text)) {
+            return text;
+
+        } else {
+            return mSearchEngineWrapper.getSearchURL(text);
+        }
+    }
+
+    // VoiceSearch Delegate
 
     @Override
     public void OnVoiceSearchResult(String transcription, float confidance) {
@@ -637,5 +725,17 @@ public class NavigationBarWidget extends UIWidget implements GeckoSession.Naviga
         if (key == mAppContext.getString(R.string.settings_key_servo)) {
             updateServoButton();
         }
+    }
+
+    // URLBarPopupWidgetDelegate
+
+    @Override
+    public void OnItemClicked(URLBarPopupWidget.URLBarItem item) {
+        mURLBar.handleURLEdit(item.url);
+    }
+
+    @Override
+    public void OnItemDeleted(URLBarPopupWidget.URLBarItem item) {
+
     }
 }
