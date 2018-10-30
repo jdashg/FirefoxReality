@@ -40,21 +40,13 @@ public class DeveloperOptionsEditText extends android.support.v7.widget.AppCompa
 
             }
         });
-        setOnFocusChangeListener(new OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean b) {
-                if (b)
-                    setTextColor(getContext().getColor(R.color.fog));
-                else
-                    setTextColor(getContext().getColor(R.color.asphalt));
-            }
+        setOnFocusChangeListener((view, b) -> {
+            if (b)
+                setTextColor(getContext().getColor(R.color.fog));
+            else
+                setTextColor(getContext().getColor(R.color.asphalt));
         });
-        setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                selectAll();
-            }
-        });
+        setOnClickListener(view -> selectAll());
     }
 
     @Override
@@ -80,22 +72,12 @@ public class DeveloperOptionsEditText extends android.support.v7.widget.AppCompa
 
     @Override
     public void setOnFocusChangeListener(final View.OnFocusChangeListener l) {
-        super.setOnFocusChangeListener(new OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View view, boolean b) {
-                l.onFocusChange(view, b);
-            }
-        });
+        super.setOnFocusChangeListener((view, b) -> l.onFocusChange(view, b));
     }
 
     @Override
     public void setOnClickListener(final View.OnClickListener l) {
-        super.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                l.onClick(view);
-            }
-        });
+        super.setOnClickListener(view -> l.onClick(view));
     }
 
 }

@@ -8,25 +8,21 @@ package org.mozilla.vrbrowser.ui.widgets;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.View;
-import android.widget.CompoundButton;
-import android.widget.RadioGroup;
 
 import org.mozilla.vrbrowser.R;
+import org.mozilla.vrbrowser.audio.AudioEngine;
 import org.mozilla.vrbrowser.browser.SessionStore;
 import org.mozilla.vrbrowser.browser.SettingsStore;
-import org.mozilla.vrbrowser.audio.AudioEngine;
-import org.mozilla.vrbrowser.ui.views.UIButton;
 import org.mozilla.vrbrowser.ui.settings.ButtonSetting;
 import org.mozilla.vrbrowser.ui.settings.DoubleEditSetting;
-import org.mozilla.vrbrowser.ui.settings.SingleEditSetting;
 import org.mozilla.vrbrowser.ui.settings.RadioGroupSetting;
+import org.mozilla.vrbrowser.ui.settings.SingleEditSetting;
 import org.mozilla.vrbrowser.ui.settings.SwitchSetting;
+import org.mozilla.vrbrowser.ui.views.UIButton;
 
 import static org.mozilla.vrbrowser.utils.ServoUtils.isServoAvailable;
 
 public class DeveloperOptionsWidget extends UIWidget {
-
-    private static final String LOGTAG = "VRB";
 
     private AudioEngine mAudio;
     private UIButton mBackButton;
@@ -72,15 +68,12 @@ public class DeveloperOptionsWidget extends UIWidget {
         mAudio = AudioEngine.fromContext(aContext);
 
         mBackButton = findViewById(R.id.backButton);
-        mBackButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (mAudio != null) {
-                    mAudio.playSound(AudioEngine.Sound.CLICK);
-                }
-
-                onDismiss();
+        mBackButton.setOnClickListener(view -> {
+            if (mAudio != null) {
+                mAudio.playSound(AudioEngine.Sound.CLICK);
             }
+
+            onDismiss();
         });
 
         mRemoteDebuggingSwitch = findViewById(R.id.remote_debugging_switch);
@@ -194,70 +187,27 @@ public class DeveloperOptionsWidget extends UIWidget {
        show();
     }
 
-    private SwitchSetting.OnCheckedChangeListener mRemoteDebuggingListener = new SwitchSetting.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(CompoundButton compoundButton, boolean value, boolean doApply) {
-            setRemoteDebugging(value, doApply);
-        }
+    private SwitchSetting.OnCheckedChangeListener mRemoteDebuggingListener = (compoundButton, value, doApply) -> setRemoteDebugging(value, doApply);
+
+    private SwitchSetting.OnCheckedChangeListener mConsoleLogsListener = (compoundButton, value, doApply) -> setConsoleLogs(value, doApply);
+
+    private SwitchSetting.OnCheckedChangeListener mEnvOverrideListener = (compoundButton, value, doApply) -> {
+        setEnvOverride(value);
+        showRestartDialog();
     };
 
-    private SwitchSetting.OnCheckedChangeListener mConsoleLogsListener = new SwitchSetting.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(CompoundButton compoundButton, boolean value, boolean doApply) {
-            setConsoleLogs(value, doApply);
-        }
-    };
+    private SwitchSetting.OnCheckedChangeListener mMultiprocessListener = (compoundButton, value, doApply) -> setMultiprocess(value, doApply);
 
-    private SwitchSetting.OnCheckedChangeListener mEnvOverrideListener = new SwitchSetting.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(CompoundButton compoundButton, boolean value, boolean doApply) {
-            setEnvOverride(value);
-            showRestartDialog();
-        }
-    };
-
-    private SwitchSetting.OnCheckedChangeListener mMultiprocessListener = new SwitchSetting.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(CompoundButton compoundButton, boolean value, boolean doApply) {
-            setMultiprocess(value, doApply);
-        }
-    };
-
-    private SwitchSetting.OnCheckedChangeListener mServoListener = new SwitchSetting.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(CompoundButton compoundButton, boolean b, boolean doApply) {
-            setServo(b, true);
-        }
-    };
+    private SwitchSetting.OnCheckedChangeListener mServoListener = (compoundButton, b, doApply) -> setServo(b, true);
 
 
-    private RadioGroupSetting.OnCheckedChangeListener mUaModeListener = new RadioGroupSetting.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(RadioGroup radioGroup, int checkedId, boolean doApply) {
-            setUaMode(checkedId, true);
-        }
-    };
+    private RadioGroupSetting.OnCheckedChangeListener mUaModeListener = (radioGroup, checkedId, doApply) -> setUaMode(checkedId, true);
 
-    private RadioGroupSetting.OnCheckedChangeListener mMSSAChangeListener = new RadioGroupSetting.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(RadioGroup radioGroup, int checkedId, boolean doApply) {
-            setMSAAMode(checkedId, true);
-        }
-    };
+    private RadioGroupSetting.OnCheckedChangeListener mMSSAChangeListener = (radioGroup, checkedId, doApply) -> setMSAAMode(checkedId, true);
 
-    private RadioGroupSetting.OnCheckedChangeListener mEnvsListener = new RadioGroupSetting.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(RadioGroup radioGroup, int checkedId, boolean doApply) {
-            setEnv(checkedId, doApply);
-        }
-    };
+    private RadioGroupSetting.OnCheckedChangeListener mEnvsListener = (radioGroup, checkedId, doApply) -> setEnv(checkedId, doApply);
 
-    private RadioGroupSetting.OnCheckedChangeListener mPointerColorListener = new RadioGroupSetting.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(RadioGroup radioGroup, int checkedId, boolean doApply) {
-            setPointerColor(checkedId, doApply);
-        }
-    };
+    private RadioGroupSetting.OnCheckedChangeListener mPointerColorListener = (radioGroup, checkedId, doApply) -> setPointerColor(checkedId, doApply);
 
     private OnClickListener mDensityListener = new OnClickListener() {
         @Override
@@ -439,7 +389,7 @@ public class DeveloperOptionsWidget extends UIWidget {
     }
 
     private boolean setDisplayDensity(float newDensity) {
-        mDensityEdit.setOnClickListener((SingleEditSetting.OnClickListener)null);
+        mDensityEdit.setOnClickListener(null);
         boolean restart = false;
         float prevDensity = SettingsStore.getInstance(getContext()).getDisplayDensity();
         if (newDensity <= 0) {
@@ -456,7 +406,7 @@ public class DeveloperOptionsWidget extends UIWidget {
     }
 
     private boolean setDisplayDpi(int newDpi) {
-        mDpiEdit.setOnClickListener((SingleEditSetting.OnClickListener)null);
+        mDpiEdit.setOnClickListener(null);
         boolean restart = false;
         int prevDensity = SettingsStore.getInstance(getContext()).getDisplayDpi();
         if (newDpi <= 0) {
